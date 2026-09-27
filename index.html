@@ -127,6 +127,76 @@ a{ color:inherit; }
 }
 @media (prefers-reduced-motion:reduce){ .btn:hover{ transform:none; } }
 
+/* ---------- Fit to screen ----------
+   Every screen fills the browser window exactly. The bottom scoreboard height is
+   measured in app.js (--sb); question text is scaled by --k until everything fits. */
+main{ height:100vh; height:100dvh; overflow-y:auto; display:flex; flex-direction:column;
+  padding:clamp(12px,3vh,32px) 24px calc(var(--sb,0px) + clamp(12px,2.5vh,28px)); }
+main > section{ flex:1 1 auto; min-height:0; }
+.page-head{ margin-bottom:clamp(12px,3vh,28px); }
+.page-head h2{ font-size:clamp(30px,min(6vw,8vh),64px); }
+
+.home{ min-height:0; gap:clamp(20px,4vh,48px); }
+.title{ font-size:clamp(60px,min(15vw,22vh),210px); }
+.team-input{ padding:clamp(4px,1vh,8px) 0; }
+.team-input input{ font-size:clamp(18px,min(2.6vw,3.6vh),26px); }
+
+.rounds{ display:flex; flex-direction:column; }
+.round-list{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }
+.round-list li{ flex:1 1 0; min-height:0; }
+.round-row{ height:100%; align-items:center; padding:clamp(6px,1.4vh,22px) 0; }
+.round-name{ font-size:clamp(18px,min(3vw,3.8vh),34px); }
+.round-no{ font-size:clamp(18px,3.2vh,28px); }
+
+.round{ display:flex; flex-direction:column; }
+.tiles{ flex:1 1 auto; min-height:0; grid-template-columns:repeat(var(--cols,6),var(--ts,120px)); grid-auto-rows:var(--ts,120px); align-content:start; }
+.tile{ aspect-ratio:auto; font-size:calc(var(--ts,120px) * .36); border-radius:clamp(10px,calc(var(--ts,120px) * .14),18px); }
+.board{ flex:1 1 auto; min-height:0; grid-template-rows:auto repeat(5,minmax(0,1fr)); }
+.board .tile{ height:auto; min-height:36px; font-size:clamp(18px,min(3vw,5vh),36px); }
+
+.question{ min-height:0; height:100%; overflow-y:auto; gap:clamp(10px,2.2vh,28px); }
+.q-body{ flex:none; gap:clamp(10px,2vh,24px); }
+.q-body.has-img{ flex:1 1 0; min-height:auto; }
+.clue{ font-size:calc(clamp(17px,min(2.4vw,3.6vh),34px) * var(--k,1)); }
+.q-img{ flex:1 1 0; min-height:min(28vh,220px); position:relative; }
+.q-img img{ position:absolute; inset:0; width:100%; height:100%; max-height:none; object-fit:contain; object-position:left center; border-radius:0; }
+.q-img.missing{ flex:none; min-height:0; }
+.answer{ flex:none; padding-top:clamp(10px,2vh,20px); }
+.answer.has-img{ flex:1 1 0; min-height:auto; display:flex; flex-direction:column; gap:clamp(8px,1.6vh,16px); }
+.ans-text{ font-size:calc(clamp(22px,min(3.4vw,5vh),48px) * var(--k,1)); margin:0 0 clamp(8px,1.6vh,16px); }
+.answer.has-img .ans-text{ margin:0; }
+.ans-fig{ flex:1 1 0; min-height:min(20vh,150px); position:relative; margin:0; }
+.ans-fig .ans-img{ position:absolute; inset:0; width:100%; height:100%; max-width:none; max-height:none; object-fit:contain; object-position:left top; border-radius:0; }
+.btn{ padding:clamp(10px,1.6vh,14px) clamp(16px,2vw,22px); }
+.standings li{ padding:clamp(6px,2vh,20px) 0; }
+.st-name{ font-size:clamp(22px,min(4vw,7vh),44px); }
+.st-score{ font-size:clamp(28px,min(5vw,9vh),64px); }
+@media (min-width:900px){
+  .answer.has-img{ flex-direction:row; gap:32px; }
+  .answer.has-img .ans-text{ flex:0 1 44%; }
+}
+@media (max-width:760px){
+  main{ padding:clamp(10px,2vh,20px) 16px calc(var(--sb,0px) + 12px); }
+  .home{ grid-template-columns:1fr; }
+  .round-row{ grid-template-columns:30px 1fr auto; gap:10px; }
+  .round-name small{ display:none; }
+  .round-meta{ grid-column:auto; text-align:right; font-size:12px; line-height:1.3; }
+  .round-meta small{ font-size:12px; }
+  .q-img{ min-height:min(20vh,170px); }
+  .ans-fig{ min-height:min(16vh,130px); }
+}
+@media (max-height:520px){
+  main{ padding-top:10px; padding-bottom:calc(var(--sb,0px) + 8px); }
+  .question{ gap:8px; }
+  .q-body{ gap:8px; }
+  .q-img{ min-height:72px; }
+  .ans-fig{ min-height:64px; }
+  .answer{ padding-top:8px; }
+  .btn{ padding:8px 14px; font-size:14px; }
+  .sc{ padding:4px 12px 6px; }
+  .sc-score{ font-size:22px; }
+}
+
 </style>
 </head>
 <body>
@@ -409,13 +479,13 @@ function renderQuestion(id){
       <a class="link" href="#round/${r.id}">${esc(r.title)}</a>
       <span class="muted">${r.board ? esc(r.cats[q.cat]) + " for " + P : "Question " + (r.qs.indexOf(q)+1) + " of " + r.qs.length}</span>
     </header>
-    <div class="q-body">
+    <div class="q-body ${q.img?"has-img":""}">
       ${q.img ? `<figure class="q-img"><img src="${imgSrc(cur.revealed ? q.id+"-answer.jpg" : imgName)}" alt="" onerror="if(!this.dataset.f){this.dataset.f=1;this.src='${imgSrc(imgName)}'}else{this.parentNode.classList.add('missing')}"><figcaption>Add image: ${IMG_DIR+imgName}</figcaption></figure>` : ""}
       <p class="clue">${esc(q.q)}</p>
     </div>
-    <div class="answer ${cur.revealed?"shown":""}" aria-live="polite">
+    <div class="answer ${cur.revealed?"shown":""} ${cur.revealed && !q.img?"has-img":""}" aria-live="polite">
       ${cur.revealed ? `<p class="ans-text">${esc(q.a)}</p>
-        ${q.img ? "" : `<img class="ans-img" src="${imgSrc(q.id+"-answer.jpg")}" alt="" onerror="this.remove()">`}` : ""}
+        ${q.img ? "" : `<figure class="ans-fig"><img class="ans-img" src="${imgSrc(q.id+"-answer.jpg")}" alt="" onerror="const a=this.closest('.answer');a.classList.remove('has-img');this.parentNode.remove();fit()"></figure>`}` : ""}
     </div>
     <footer class="controls">
       ${cur.done ? `<p class="status">${cur.result || "Already played."}</p>` : `
@@ -488,6 +558,40 @@ function renderScores(){
   board.querySelectorAll("[data-adj]").forEach(b => b.onclick = () => { score(+b.dataset.adj, +b.dataset.d, null); renderScores(); });
   document.getElementById("undoBtn").onclick = () => { const l = S.log.pop(); if (l){ S.teams[l.i].score -= l.d; save(); route(); } };
 }
+
+/* ---------- Fit to screen ---------- */
+// Keeps every screen inside the browser window: sizes the tile grid, then shrinks
+// question text step by step until the question, picture, answer and buttons all fit.
+function fit(){
+  const sb = board.hidden ? 0 : board.offsetHeight;
+  document.documentElement.style.setProperty("--sb", sb + "px");
+  const tl = app.querySelector(".tiles");
+  if (tl){
+    const n = tl.children.length, g = parseFloat(getComputedStyle(tl).columnGap) || 14;
+    const W = tl.clientWidth, H = tl.clientHeight;
+    let best = 1, bs = 0;
+    for (let c = 1; c <= n; c++){
+      const rows = Math.ceil(n / c);
+      const s = Math.min((W - g*(c-1)) / c, (H - g*(rows-1)) / rows, 180);
+      if (s > bs){ bs = s; best = c; }
+    }
+    tl.style.setProperty("--cols", best);
+    tl.style.setProperty("--ts", Math.max(Math.floor(bs), 44) + "px");
+  }
+  const box = app.querySelector(".question");
+  if (box){
+    let k = 1; box.style.setProperty("--k", 1);
+    while (box.scrollHeight > box.clientHeight + 1 && k > 0.55){
+      k -= 0.05; box.style.setProperty("--k", k.toFixed(2));
+    }
+  }
+}
+let fitQueued = false;
+const queueFit = () => { if (fitQueued) return; fitQueued = true; requestAnimationFrame(() => { fitQueued = false; fit(); }); };
+new MutationObserver(queueFit).observe(app, { childList: true });
+new MutationObserver(queueFit).observe(board, { childList: true, attributes: true });
+window.addEventListener("resize", queueFit);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(queueFit);
 
 route();
 

@@ -155,13 +155,13 @@ function renderQuestion(id){
       <a class="link" href="#round/${r.id}">${esc(r.title)}</a>
       <span class="muted">${r.board ? esc(r.cats[q.cat]) + " for " + P : "Question " + (r.qs.indexOf(q)+1) + " of " + r.qs.length}</span>
     </header>
-    <div class="q-body">
+    <div class="q-body ${q.img?"has-img":""}">
       ${q.img ? `<figure class="q-img"><img src="${imgSrc(cur.revealed ? q.id+"-answer.jpg" : imgName)}" alt="" onerror="if(!this.dataset.f){this.dataset.f=1;this.src='${imgSrc(imgName)}'}else{this.parentNode.classList.add('missing')}"><figcaption>Add image: ${IMG_DIR+imgName}</figcaption></figure>` : ""}
       <p class="clue">${esc(q.q)}</p>
     </div>
-    <div class="answer ${cur.revealed?"shown":""}" aria-live="polite">
+    <div class="answer ${cur.revealed?"shown":""} ${cur.revealed && !q.img?"has-img":""}" aria-live="polite">
       ${cur.revealed ? `<p class="ans-text">${esc(q.a)}</p>
-        ${q.img ? "" : `<img class="ans-img" src="${imgSrc(q.id+"-answer.jpg")}" alt="" onerror="this.remove()">`}` : ""}
+        ${q.img ? "" : `<figure class="ans-fig"><img class="ans-img" src="${imgSrc(q.id+"-answer.jpg")}" alt="" onerror="const a=this.closest('.answer');a.classList.remove('has-img');this.parentNode.remove();fit()"></figure>`}` : ""}
     </div>
     <footer class="controls">
       ${cur.done ? `<p class="status">${cur.result || "Already played."}</p>` : `
@@ -234,5 +234,39 @@ function renderScores(){
   board.querySelectorAll("[data-adj]").forEach(b => b.onclick = () => { score(+b.dataset.adj, +b.dataset.d, null); renderScores(); });
   document.getElementById("undoBtn").onclick = () => { const l = S.log.pop(); if (l){ S.teams[l.i].score -= l.d; save(); route(); } };
 }
+
+/* ---------- Fit to screen ---------- */
+// Keeps every screen inside the browser window: sizes the tile grid, then shrinks
+// question text step by step until the question, picture, answer and buttons all fit.
+function fit(){
+  const sb = board.hidden ? 0 : board.offsetHeight;
+  document.documentElement.style.setProperty("--sb", sb + "px");
+  const tl = app.querySelector(".tiles");
+  if (tl){
+    const n = tl.children.length, g = parseFloat(getComputedStyle(tl).columnGap) || 14;
+    const W = tl.clientWidth, H = tl.clientHeight;
+    let best = 1, bs = 0;
+    for (let c = 1; c <= n; c++){
+      const rows = Math.ceil(n / c);
+      const s = Math.min((W - g*(c-1)) / c, (H - g*(rows-1)) / rows, 180);
+      if (s > bs){ bs = s; best = c; }
+    }
+    tl.style.setProperty("--cols", best);
+    tl.style.setProperty("--ts", Math.max(Math.floor(bs), 44) + "px");
+  }
+  const box = app.querySelector(".question");
+  if (box){
+    let k = 1; box.style.setProperty("--k", 1);
+    while (box.scrollHeight > box.clientHeight + 1 && k > 0.55){
+      k -= 0.05; box.style.setProperty("--k", k.toFixed(2));
+    }
+  }
+}
+let fitQueued = false;
+const queueFit = () => { if (fitQueued) return; fitQueued = true; requestAnimationFrame(() => { fitQueued = false; fit(); }); };
+new MutationObserver(queueFit).observe(app, { childList: true });
+new MutationObserver(queueFit).observe(board, { childList: true, attributes: true });
+window.addEventListener("resize", queueFit);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(queueFit);
 
 route();
